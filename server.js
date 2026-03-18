@@ -5,12 +5,102 @@ const PORT = process.env.PORT || 5001;
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-mongoose.connect(process.env.MONGODB_URI);
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const User = require('./models/User');
+
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB connection error:", err));
+
+//mail transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 const app = express();
 app.use(cors());
 // app.use(bodyParser.json());
 app.use(express.json());
+
+//helper fubctions
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+//register endpoint
+app.post('/api/register', async (req, res) => {
+  try {
+    const { firstName, lastName, login, email, password } = req.body;
+
+    //check if all fields are filled
+    if (!firstName || !lastName || !login || !email || !password) {
+      return res.status(400).json({ error: 'Please fill out all fields' });
+    }
+
+    const trimmedLogin = login.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    //check if login exitsts
+    const existingLogin = await User.findOne({ login: trimmedLogin });
+    if (existingLogin) {
+      return res.status(400).json({ error: 'This Login exists already' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const verifyToken = generateToken();
+    const verifyTokenHash = hashToken(verifyToken);
+    const verifyTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const user = await User.create({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      login: trimmedLogin,
+      email: normalizedEmail,
+      passwordHash,
+      isVerified: false,
+      verifyTokenHash,
+      verifyTokenExpiresAt,
+    });
+
+    const verifyUrl = `http://localhost:5001/api/verify-email?token=${verifyToken}`;
+
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM,
+      to: user.email,
+      subject: 'Verify your email',
+      html: `
+        <p>Hi ${user.firstName},</p>
+        <p>Welcome to MiCon.</p>
+        <p>Please verify your email with this link:</p>
+        <a href="${verifyUrl}">${verifyUrl}</a>
+        <p>Link expires in 24 hours.</p>
+      `,
+    });
+
+    //success
+    return res.status(201).json({
+      message: 'Registration successful. You will need to verify your email before logging in.',
+      error: '',
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
 
 app.post('/api/addcard', async (req, res, next) =>
 {
@@ -105,6 +195,46 @@ app.use((req, res, next) =>
     'GET, POST, PATCH, DELETE, OPTIONS'
   );
   next();
+});
+
+//verify email
+app.get('/api/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    //missing token
+    if (!token) {
+      return res.status(400).json({ error: 'Token is missing' });
+    }
+
+    const tokenHash = hashToken(token);
+
+    const user = await User.findOne({
+      verifyTokenHash: tokenHash,
+      verifyTokenExpiresAt: { $gt: new Date() },
+    });
+
+    //invalid token
+    if (!user) {
+      return res.status(400).json({ error: 'Token in invalid or expired' });
+    }
+
+    user.isVerified = true;
+    user.verifyTokenHash = null;
+    user.verifyTokenExpiresAt = null;
+
+    await user.save();
+
+    //success
+    return res.status(200).json({
+      message: 'Email successfully verified',
+      error: '',
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
 });
 
 app.listen(PORT,() => {
