@@ -10,6 +10,8 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const User = require('./models/User');
 
+const jwt = require('jsonwebtoken');
+
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.error("MongoDB connection error:", err));
@@ -30,13 +32,30 @@ app.use(cors());
 // app.use(bodyParser.json());
 app.use(express.json());
 
-//helper fubctions
+//helper fubctions register/ email verification
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+//helper functions login
+function generateLoginCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function signJwt(user) {
+  return jwt.sign(
+    {
+      sub: user._id.toString(),
+      login: user.login,
+      email: user.email,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
 }
 
 //register endpoint
@@ -150,34 +169,65 @@ app.post('/api/searchcards', async (req, res, next) =>
   res.status(200).json(ret);
 });
 
-app.post('/api/login', async (req, res, next) => 
-{
-  // incoming: login, password
-  // outgoing: id, firstName, lastName, error
-	
- var error = '';
+app.post('/api/login', async (req, res) => {
+  try {
+    const { login, password } = req.body;
 
-  const { login, password } = req.body;
+    //input validation
+    if (!login || !password) {
+      return res.status(400).json({ error: 'Fill out all fields' });
+    }
 
-  const db = client.db('MainDatabase');
-  const results = await db.collection('Users').find({Login:login,Password:password}).toArray();
+    const trimmedLogin = login.trim();
 
-  var id = -1;
-  var fn = '';
-  var ln = '';
+    const user = await User.findOne({ login: trimmedLogin });
 
-  if( results.length > 0 )
-  {
-    id = results[0].UserID;
-    fn = results[0].FirstName;
-    ln = results[0].LastName;
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid user' });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ error: 'Your email is not verified yet' });
+    }
+
+    const loginCode = generateLoginCode();
+    const loginCodeHash = hashToken(loginCode);
+    const loginCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.loginCodeHash = loginCodeHash;
+    user.loginCodeExpiresAt = loginCodeExpiresAt;
+    user.loginCodeAttempts = 0;
+
+    await user.save();
+
+    //send email with login code
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM,
+      to: user.email,
+      subject: 'Your login code',
+      html: `
+        <p>Hello ${user.firstName},</p>
+        <p>Your login code is:</p>
+        <h2>${loginCode}</h2>
+        <p>Code expires in 10 minutes.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      message: 'Login code sent to email',
+      error: '',
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
   }
-
-  var ret = { id:id, firstName:fn, lastName:ln, error:''};
-  res.status(200).json(ret);
 });
-
-
 
 app.use((req, res, next) => 
 {
@@ -195,6 +245,75 @@ app.use((req, res, next) =>
     'GET, POST, PATCH, DELETE, OPTIONS'
   );
   next();
+});
+
+//verify login code
+app.post('/api/verify-login-code', async (req, res) => {
+  try {
+    const { login, code } = req.body;
+
+    if (!login || !code) {
+      return res.status(400).json({ error: 'Login and code are required' });
+    }
+
+    const trimmedLogin = login.trim();
+
+    const user = await User.findOne({ login: trimmedLogin });
+
+    //check if valid code
+    if (!user) {
+      return res.status(400).json({ error: 'Code is invalid or expired' });
+    }
+
+    if (!user.loginCodeHash || !user.loginCodeExpiresAt) {
+      return res.status(400).json({ error: 'No active login code' });
+    }
+
+    if (user.loginCodeExpiresAt < new Date()) {
+      user.loginCodeHash = null;
+      user.loginCodeExpiresAt = null;
+      user.loginCodeAttempts = 0;
+      await user.save();
+
+      return res.status(400).json({ error: 'Invalid or expired code' });
+    }
+
+    if (user.loginCodeAttempts >= 5) {
+      return res.status(429).json({ error: 'Too many incorrect login attempts' });
+    }
+
+    const incomingCodeHash = hashToken(code);
+
+    if (incomingCodeHash !== user.loginCodeHash) {
+      user.loginCodeAttempts += 1;
+      await user.save();
+
+      return res.status(400).json({ error: 'Invalid or expired code' });
+    }
+
+    user.loginCodeHash = null;
+    user.loginCodeExpiresAt = null;
+    user.loginCodeAttempts = 0;
+    await user.save();
+
+    const token = signJwt(user);
+
+    return res.status(200).json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        login: user.login,
+        email: user.email,
+      },
+      error: '',
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
 });
 
 //verify email
