@@ -2,12 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const PORT = process.env.PORT || 5001;
 
-const MongoClient = require('mongodb').MongoClient;
+const mongoose = require('mongoose');
 require('dotenv').config();
-const url = process.env.MONGODB_URI;
 
-const client = new MongoClient(url);
-client.connect();
+mongoose.connect(process.env.MONGODB_URI);
 
 const app = express();
 app.use(cors());
