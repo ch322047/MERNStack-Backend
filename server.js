@@ -12,12 +12,13 @@ All AI-generated code was reviewed, tested, and modified to meet
 assignment requirements. Final implementation reflects our understanding 
 of the concepts.*/
 
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const PORT = process.env.PORT || 5001;
 
 const mongoose = require('mongoose');
-require('dotenv').config();
 
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
