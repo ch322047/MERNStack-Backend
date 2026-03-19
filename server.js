@@ -111,7 +111,7 @@ app.post('/api/register', async (req, res) => {
 
     const verifyUrl = `https://lampstackprojectgroup9.com/api/verify-email?token=${verifyToken}`;
 
-    await transporter.sendMail({
+    /*await transporter.sendMail({
       from: process.env.MAIL_FROM,
       to: user.email,
       subject: 'Verify your email',
@@ -122,7 +122,7 @@ app.post('/api/register', async (req, res) => {
         <a href="${verifyUrl}">${verifyUrl}</a>
         <p>Link expires in 24 hours.</p>
       `,
-    });
+    });*/
 
     //success
     return res.status(201).json({
