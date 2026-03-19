@@ -108,7 +108,7 @@ app.post('/api/register', async (req, res) => {
       verifyTokenExpiresAt,
     });
 
-    const verifyUrl = `http://localhost:5001/api/verify-email?token=${verifyToken}`;
+    const verifyUrl = `http://206.189.195.107:5000/api/verify-email?token=${verifyToken}`;
 
     await transporter.sendMail({
       from: process.env.MAIL_FROM,
@@ -403,7 +403,7 @@ app.post('/api/forgot-password', async (req, res) => {
     user.resetTokenExpiresAt = resetTokenExpiresAt;
     await user.save();
 
-    const resetUrl = `http://localhost:5001/api/reset-password?token=${resetToken}`;
+    const resetUrl = `http://206.189.195.107:5000/api/reset-password?token=${resetToken}`;
 
     await transporter.sendMail({
       from: process.env.MAIL_FROM,
