@@ -1,3 +1,17 @@
+/*AI Assistance Disclosure
+
+This project was developed with assistance from generative AI tools:
+
+- **Tool**: ChatGPT-5.3
+- **Dates**: March 15-21, 2026
+- **Scope**: Help with implementing register/login and security features
+- **Use**: Explanations for implementation of API endpoints for login and register with 
+  email verification, 2FA and password reset
+
+All AI-generated code was reviewed, tested, and modified to meet 
+assignment requirements. Final implementation reflects our understanding 
+of the concepts.*/
+
 const express = require('express');
 const cors = require('cors');
 const PORT = process.env.PORT || 5001;
@@ -213,7 +227,7 @@ app.post('/api/login', async (req, res) => {
       to: user.email,
       subject: 'Your login code',
       html: `
-        <p>Hello ${user.firstName},</p>
+        <p>Hi ${user.firstName},</p>
         <p>Your login code is:</p>
         <h2>${loginCode}</h2>
         <p>Code expires in 30 minutes.</p>
