@@ -32,7 +32,7 @@ app.use(cors());
 // app.use(bodyParser.json());
 app.use(express.json());
 
-//helper fubctions register/ email verification
+//helper functions register/ email verification
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -169,6 +169,7 @@ app.post('/api/searchcards', async (req, res, next) =>
   res.status(200).json(ret);
 });
 
+//login
 app.post('/api/login', async (req, res) => {
   try {
     const { login, password } = req.body;
@@ -198,7 +199,7 @@ app.post('/api/login', async (req, res) => {
 
     const loginCode = generateLoginCode();
     const loginCodeHash = hashToken(loginCode);
-    const loginCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const loginCodeExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
     user.loginCodeHash = loginCodeHash;
     user.loginCodeExpiresAt = loginCodeExpiresAt;
@@ -215,7 +216,7 @@ app.post('/api/login', async (req, res) => {
         <p>Hello ${user.firstName},</p>
         <p>Your login code is:</p>
         <h2>${loginCode}</h2>
-        <p>Code expires in 10 minutes.</p>
+        <p>Code expires in 30 minutes.</p>
       `,
     });
 
@@ -350,6 +351,98 @@ app.get('/api/verify-email', async (req, res) => {
       error: '',
     });
 
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+//forgot password
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const { login, email } = req.body;
+
+    if (!login || !email) {
+      return res.status(400).json({ error: 'Login and email are required' });
+    }
+
+    const trimmedLogin = login.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+      login: trimmedLogin,
+      email: normalizedEmail
+    });
+
+    if (!user) {
+      return res.status(200).json({
+        message: 'If an account exists, a password reset email has been sent.',
+        error: '',
+      });
+    }
+
+    const resetToken = generateToken();
+    const resetTokenHash = hashToken(resetToken);
+    const resetTokenExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    user.resetTokenHash = resetTokenHash;
+    user.resetTokenExpiresAt = resetTokenExpiresAt;
+    await user.save();
+
+    const resetUrl = `http://localhost:5001/api/reset-password?token=${resetToken}`;
+
+    await transporter.sendMail({
+      from: process.env.MAIL_FROM,
+      to: user.email,
+      subject: 'Reset your password',
+      html: `
+        <p>Hi ${user.firstName},</p>
+        <p>Please click the link below to reset your password:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+        <p>Link expires in 30 minutes.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      message: 'If an account exists, a password reset email has been sent.',
+      error: '',
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+//reset password
+app.post('/api/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    const tokenHash = hashToken(token);
+
+    const user = await User.findOne({
+      resetTokenHash: tokenHash,
+      resetTokenExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'This token is invalid or expired' });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12);
+    user.resetTokenHash = null;
+    user.resetTokenExpiresAt = null;
+
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Password reset was successful',
+      error: '',
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
