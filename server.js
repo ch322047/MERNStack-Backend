@@ -42,6 +42,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+//testing
+transporter.verify()
+  .then(() => console.log('SMTP ready'))
+  .catch(err => console.error('SMTP error:', err));
+
 const app = express();
 app.use(cors());
 // app.use(bodyParser.json());
