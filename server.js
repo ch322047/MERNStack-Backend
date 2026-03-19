@@ -26,6 +26,8 @@ const nodemailer = require('nodemailer');
 const User = require('./models/User');
 
 const jwt = require('jsonwebtoken');
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SMTP_PASS);
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB connected"))
@@ -119,18 +121,17 @@ app.post('/api/register', async (req, res) => {
 
     const verifyUrl = `https://lampstackprojectgroup9.com/api/verify-email?token=${verifyToken}`;
 
-    /*await transporter.sendMail({
-      from: process.env.MAIL_FROM,
+    await sgMail.send({
       to: user.email,
+      from: process.env.MAIL_FROM,
       subject: 'Verify your email',
       html: `
         <p>Hi ${user.firstName},</p>
-        <p>Welcome to MiCon.</p>
-        <p>Please verify your email with this link:</p>
+        <p>Please verify your email by clicking this link:</p>
         <a href="${verifyUrl}">${verifyUrl}</a>
         <p>Link expires in 24 hours.</p>
       `,
-    });*/
+    });
 
     //success
     return res.status(201).json({
@@ -231,13 +232,13 @@ app.post('/api/login', async (req, res) => {
     await user.save();
 
     //send email with login code
-    await transporter.sendMail({
-      from: process.env.MAIL_FROM,
+    await sgMail.send({
       to: user.email,
-      subject: 'Your login code',
+      from: process.env.MAIL_FROM,
+      subject: 'Your login verification code',
       html: `
         <p>Hi ${user.firstName},</p>
-        <p>Your login code is:</p>
+        <p>Your login verification code is:</p>
         <h2>${loginCode}</h2>
         <p>Code expires in 30 minutes.</p>
       `,
@@ -414,9 +415,9 @@ app.post('/api/forgot-password', async (req, res) => {
 
     const resetUrl = `https://lampstackprojectgroup9.com/api/reset-password?token=${resetToken}`;
 
-    await transporter.sendMail({
-      from: process.env.MAIL_FROM,
+    await sgMail.send({
       to: user.email,
+      from: process.env.MAIL_FROM,
       subject: 'Reset your password',
       html: `
         <p>Hi ${user.firstName},</p>
