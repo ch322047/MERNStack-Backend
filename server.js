@@ -474,6 +474,32 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
+// Search for trip by id and send result to frontend
+app.get('/api/get-trip/:tripId', async(req, res) => {
+  try {
+    // Save what the frontend sent
+    const {tripId} = req.params;
+
+    // Lookup document
+    const trip = await Trip.findbyId(tripId);
+
+    // Make sure tripId exists
+    if(!trip) {
+      return res.status(400).json({error: 'trip does not exist'});
+    }
+
+    // Return success message and trip
+    return res.status(200).json({
+      message: 'successfully found the trip',
+      trip: trip,
+      error: ''
+    });
+  } catch(err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Create a trip
 app.post('/api/create-trip', async (req, res) => {
   try {
