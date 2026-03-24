@@ -24,6 +24,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const User = require('./models/User');
+const Trip = require('./models/Trip');
 
 const jwt = require('jsonwebtoken');
 const sgMail = require('@sendgrid/mail');
@@ -470,6 +471,44 @@ app.post('/api/reset-password', async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create a trip
+app.post('/api/create-trip', async (req, res) => {
+  try {
+    // Save what the frontend sent
+    const {userId, name, destination, startDate, endDate, status} = req.body;
+
+    // Check that all required fields are present
+    if(!userId || !name || !destination || !startDate) {
+      return res.status(400).json({error: 'userId, name, destination, and startDate are required'});
+    }
+
+    // Make sure userId exists
+    const theUserExists = await User.findById(userId);
+
+    if(!theUserExists) {
+      return res.status(400).json({error: 'userId does not exist'});
+    }
+
+    // Create new trip
+    const newTrip = await Trip.create({
+      userId,
+      name,
+      destination,
+      startDate,
+      endDate,
+      status
+    });
+
+    return res.status(200).json({
+      message: 'successfully created a trip',
+      error: ''
+    });
+  } catch(err) {
+    console.error(err);
+    return res.status(500).json({error: 'Server error'});
   }
 });
 
