@@ -501,10 +501,11 @@ app.get('/api/get-trip/:tripId', async(req, res) => {
 });
 
 // Create a trip
-app.post('/api/create-trip', async (req, res) => {
+app.post('/api/create-trip/:userId', async(req, res) => {
   try {
     // Save what the frontend sent
-    const {userId, name, destination, startDate, endDate, status} = req.body;
+    const {userId} = req.params;
+    const {name, destination, startDate, endDate, status} = req.body;
 
     // Check that all required fields are present
     if(!userId || !name || !destination || !startDate) {
@@ -528,8 +529,17 @@ app.post('/api/create-trip', async (req, res) => {
       status
     });
 
+    // Return success message and tripId
     return res.status(200).json({
       message: 'successfully created a trip',
+      tripId: newTrip._id,
+      error: ''
+    });
+  } catch(err) {
+    console.error(err);
+    return res.status(500).json({error: 'Server error'});
+  }
+});
       error: ''
     });
   } catch(err) {
