@@ -699,6 +699,37 @@ app.post('/api/add-itinerary-day-activity/:userId/:tripId/:dayId', async(req, re
     return res.status(500).json({error: 'Server error'});
   }
 });
+
+// Add an item to the packing list
+app.post('/api/add-to-packing-list/:userId/:tripId', async(req, res) => {
+  try {
+    // Save what the frontend sent
+    const {userId, tripId} = req.params;
+    const {item, packed} = req.body;
+
+    // Make sure userId exists
+    const theUserExists = await User.findById(userId);
+
+    if(!theUserExists) {
+      return res.status(400).json({error: 'userId does not exist'});
+    }
+
+    // Make sure tripId exists
+    const theTripExists = await Trip.findById(tripId);
+
+    if(!theTripExists) {
+      return res.status(400).json({error: 'tripId does not exist'});
+    }
+
+    // Push the new item into the packingList array
+    trip.packingList.push({item, packed});
+
+    // Save to database
+    await trip.save();
+
+    // Return success message
+    return res.status(200).json({
+      message: 'successfully added an item to the packing list',
       error: ''
     });
   } catch(err) {
