@@ -654,6 +654,51 @@ app.post('/api/add-itinerary-day/:userId/:tripId', async(req, res) => {
     return res.status(500).json({error: 'Server error'});
   }
 });
+
+// Add an activity to an existing day in the itinerary
+app.post('/api/add-itinerary-day-activity/:userId/:tripId/:dayId', async(req, res) => {
+  try {
+    // Save what the frontend sent
+    const {userId, tripId, dayId} = req.params;
+    const {name, time, location} = req.body;
+
+    // Make sure userId exists
+    const theUserExists = await User.findById(userId);
+
+    if(!theUserExists) {
+      return res.status(400).json({error: 'userId does not exist'});
+    }
+
+    // Make sure tripId exists
+    const theTripExists = await Trip.findById(tripId);
+
+    if(!theTripExists) {
+      return res.status(400).json({error: 'tripId does not exist'});
+    }
+
+    // Make sure dayId is a day
+    const day = trip.itinerary.id(dayId);
+
+    if(!day) {
+      return res.status(400).json({error: 'dayId is not a day'});
+    }
+
+    // Push the new activity into the activities array
+    day.activities.push({name, time, location});
+
+    // Save to database
+    await trip.save();
+
+    // Return success message
+    return res.status(200).json({
+      message: 'successfully added an activity to the requested day in the itinerary',
+      error: ''
+    });
+  } catch(err) {
+    console.error(err);
+    return res.status(500).json({error: 'Server error'});
+  }
+});
       error: ''
     });
   } catch(err) {
