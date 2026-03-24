@@ -578,6 +578,44 @@ app.post('/api/add-flight/:userId/:tripId', async(req, res) => {
     return res.status(500).json({error: 'Server error'});
   }
 });
+
+// Add a hotel
+app.post('/api/add-hotel/:userId/:tripId', async(req, res) => {
+  try {
+    // Save what the frontend sent
+    const {userId, tripId} = req.params;
+    const {name, checkIn, checkOut, booked} = req.body;
+
+    // Make sure userId exists
+    const theUserExists = await User.findById(userId);
+
+    if(!theUserExists) {
+      return res.status(400).json({error: 'userId does not exist'});
+    }
+
+    // Make sure tripId exists
+    const theTripExists = await Trip.findById(tripId);
+
+    if(!theTripExists) {
+      return res.status(400).json({error: 'tripId does not exist'});
+    }
+
+    // Push the new hotel into the hotel array
+    trip.hotels.push({name, checkIn, checkOut, booked});
+
+    // Save to database
+    await trip.save();
+
+    // Return success message
+    return res.status(200).json({
+      message: 'successfully added a hotel',
+      error: ''
+    });
+  } catch(err) {
+    console.error(err);
+    return res.status(500).json({error: 'Server error'});
+  }
+});
       error: ''
     });
   } catch(err) {
