@@ -549,16 +549,16 @@ app.post('/api/add-flight/:userId/:tripId', async(req, res) => {
     const {airline, flightNumber, departure, arrival, booked} = req.body;
 
     // Make sure userId exists
-    const theUserExists = await User.findById(userId);
+    const user = await User.findById(userId);
 
-    if(!theUserExists) {
+    if(!user) {
       return res.status(400).json({error: 'userId does not exist'});
     }
 
     // Make sure tripId exists
-    const theTripExists = await Trip.findById(tripId);
+    const trip = await Trip.findById(tripId);
 
-    if(!theTripExists) {
+    if(!trip) {
       return res.status(400).json({error: 'tripId does not exist'});
     }
 
@@ -587,16 +587,16 @@ app.post('/api/add-hotel/:userId/:tripId', async(req, res) => {
     const {name, checkIn, checkOut, booked} = req.body;
 
     // Make sure userId exists
-    const theUserExists = await User.findById(userId);
+    const user = await User.findById(userId);
 
-    if(!theUserExists) {
+    if(!user) {
       return res.status(400).json({error: 'userId does not exist'});
     }
 
     // Make sure tripId exists
-    const theTripExists = await Trip.findById(tripId);
+    const trip = await Trip.findById(tripId);
 
-    if(!theTripExists) {
+    if(!trip) {
       return res.status(400).json({error: 'tripId does not exist'});
     }
 
@@ -625,16 +625,16 @@ app.post('/api/add-itinerary-day/:userId/:tripId', async(req, res) => {
     const {date} = req.body;
 
     // Make sure userId exists
-    const theUserExists = await User.findById(userId);
+    const user = await User.findById(userId);
 
-    if(!theUserExists) {
+    if(!user) {
       return res.status(400).json({error: 'userId does not exist'});
     }
 
     // Make sure tripId exists
-    const theTripExists = await Trip.findById(tripId);
+    const trip = await Trip.findById(tripId);
 
-    if(!theTripExists) {
+    if(!trip) {
       return res.status(400).json({error: 'tripId does not exist'});
     }
 
@@ -663,16 +663,16 @@ app.post('/api/add-itinerary-day-activity/:userId/:tripId/:dayId', async(req, re
     const {name, time, location} = req.body;
 
     // Make sure userId exists
-    const theUserExists = await User.findById(userId);
+    const user = await User.findById(userId);
 
-    if(!theUserExists) {
+    if(!user) {
       return res.status(400).json({error: 'userId does not exist'});
     }
 
     // Make sure tripId exists
-    const theTripExists = await Trip.findById(tripId);
+    const trip = await Trip.findById(tripId);
 
-    if(!theTripExists) {
+    if(!trip) {
       return res.status(400).json({error: 'tripId does not exist'});
     }
 
@@ -708,16 +708,16 @@ app.post('/api/add-to-packing-list/:userId/:tripId', async(req, res) => {
     const {item, packed} = req.body;
 
     // Make sure userId exists
-    const theUserExists = await User.findById(userId);
+    const user = await User.findById(userId);
 
-    if(!theUserExists) {
+    if(!user) {
       return res.status(400).json({error: 'userId does not exist'});
     }
 
     // Make sure tripId exists
-    const theTripExists = await Trip.findById(tripId);
+    const trip = await Trip.findById(tripId);
 
-    if(!theTripExists) {
+    if(!trip) {
       return res.status(400).json({error: 'tripId does not exist'});
     }
 
