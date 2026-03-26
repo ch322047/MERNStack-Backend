@@ -481,7 +481,7 @@ app.get('/api/get-trip/:tripId', async(req, res) => {
     const {tripId} = req.params;
 
     // Lookup document
-    const trip = await Trip.findbyId(tripId);
+    const trip = await Trip.findById(tripId);
 
     // Make sure tripId exists
     if(!trip) {
