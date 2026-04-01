@@ -738,6 +738,476 @@ app.post('/api/add-to-packing-list/:userId/:tripId', async(req, res) => {
   }
 });
 
+
+//middleware/validateTripOwnership
+const validateTripOwnership = async (req, res, next) => {
+    try{
+
+        console.log("validateTripOwnership HIT");
+       //Get user and trip id from params
+        const {userId, tripId} = req.params;
+
+        //Check required params
+        if(!userId || !tripId)
+        {
+           return res.status(400).json({error: 'userId and tripId are required'}); 
+        }
+
+        //Make sure userId exist
+        const theUserExists = await User.findById(userId);
+        if(!theUserExists)
+        {
+            return res.status(400).json({error: 'userId does not exist'});
+        }
+
+        //Make sure tripId exist
+        const theTripExists = await Trip.findById(tripId);
+        if(!theTripExists)
+        {
+            return res.status(400).json({error: 'Trip does not exist'});
+        }
+
+        //Make sure tripdId belongs to userId
+        if (theTripExists.userId.toString() !== userId) 
+        {
+        return res.status(403).json({ error: 'This user does not have this trip' });
+        }
+
+        //Save for later use
+        req.user = theUserExists;
+        req.trip = theTripExists;
+
+        next(); 
+    }catch(err){
+        return res.status(500).json({ error: 'Server error' });
+    }
+
+};
+
+//Edit an existing trip
+
+app.put('/api/edit-trip/:userId/:tripId', validateTripOwnership, async (req, res) => {
+  try {
+    const { name, destination, startDate, status } = req.body;
+
+    if (name !== undefined && name !== '') req.trip.name = name;
+    if (destination !== undefined && destination !== '') req.trip.destination = destination;
+    if (startDate !== undefined && startDate !== '') req.trip.startDate = startDate;
+    if (status !== undefined && status !== '') req.trip.status = status;
+
+    await req.trip.save();
+
+    return res.status(200).json({
+      message: 'Trip updated successfully',
+      trip: req.trip,
+      error: ''
+    });
+  } catch (err) {
+    console.error('EDIT TRIP ERROR:', err);
+    return res.status(500).json({
+      error: 'Server error',
+      details: err.message
+    });
+  }
+});
+//Edit existing flight
+app.put('/api/edit-flight/:userId/:tripId/:flightId', validateTripOwnership, async(req, res) =>
+{   
+    try
+    {
+      console.log("EDIT FLIGHT HIT");
+        //Get possible update fields from body
+        const { flightId } = req.params;
+        const{ airline, flightNumber, departure, arrival, booked } = req.body;
+
+        // Find the specific flight inside the trip's flights array
+        const flight = req.trip.flights.id(flightId);
+
+        if (!flight) 
+        {
+            return res.status(400).json({ error: 'Flight does not exist' });
+        }
+      
+        //Update only provided fields
+        if(airline !== undefined) flight.airline = airline;
+        if(flightNumber !== undefined) flight.flightNumber = flightNumber;
+        if(departure !== undefined) flight.departure = departure;
+        if(arrival !== undefined) flight.arrival = arrival;
+        if(booked !== undefined) flight.booked = booked;
+
+        // Save updated trip
+        await req.trip.save();
+
+        return res.status(200).json({
+             message: 'Flight updated successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err) 
+    {
+    console.error(err);
+    return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Edit existing hotel
+
+app.put('/api/edit-hotel/:userId/:tripId/:hotelId', validateTripOwnership, async(req, res) => 
+{
+    try
+    {
+        //Get possible fields 
+        const{ hotelId } = req.params;
+        const{ name, checkIn, checkOut, booked } = req.body;
+
+        //find specific hotel in the hotel array
+        const hotel = req.trip.hotels.id(hotelId);
+
+        if (!hotel) 
+        {
+            return res.status(400).json({ error: 'Hotel reservation does not exist' });
+        }
+
+        //Update only provided fields
+        if( name !== undefined) hotel.name = name;
+        if( checkIn !== undefined ) hotel.checkIn = checkIn;
+        if ( checkOut !== undefined ) hotel.checkOut = checkOut;
+        if(booked !== undefined ) hotel.booked = booked;
+
+        // Save updated hotel reservation
+        await req.trip.save();
+
+        return res.status(200).json({
+             message: 'Hotel reservation updated successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Edit existing day on hte itinerary
+
+app.put('/api/edit-itinerary-day/:userId/:tripId/:dayId', validateTripOwnership, async(req, res) => 
+{
+    try{
+
+        //Get itinerary  id and new date
+        const { dayId } = req.params;
+        const { date } = req.body;
+
+        //Find specific itinerary on the array
+         const itinerary = req.trip.itinerary.id(dayId);
+
+        if (!itinerary) 
+        {
+            return res.status(400).json({ error: 'Itinerary does not exist' });
+        }
+
+        if(!date)
+        {
+            return res.status(400).json({error: 'New Itinerary date must be enter'});
+        }
+        else
+        {
+            itinerary.date = date;
+        }
+
+        // Save updated Itinerary date
+        await req.trip.save();
+
+        return res.status(200).json({
+             message: 'Itinerary date updated successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Edit an existing itinerary Activity
+
+app.put('/api/edit-itinerary-day-activity/:userId/:tripId/:dayId/:activityId', validateTripOwnership, async(req, res) => 
+{
+    try{
+        const { dayId, activityId } = req.params;
+        const{ name, time, location } = req.body;
+
+        //Find specific itinerary on the array
+        const itinerary = req.trip.itinerary.id(dayId);
+
+        if (!itinerary) 
+        {
+            return res.status(400).json({ error: 'Itinerary does not exist' });
+        }
+
+        //Find the specific activity inside that day
+        const activity = itinerary.activities.id(activityId);
+        if(!activity)
+        {
+            return res.status(400).json({ error: 'Activity does not exist' });
+        }
+
+        //Update only provided fields
+        if(name !== undefined ) activity.name = name;
+        if( time !== undefined) activity.time = time;
+        if( location !== undefined) activity.location = location;
+
+        //prevent empty update
+        if (name === undefined && time === undefined && location === undefined) 
+        {
+            return res.status(400).json({ error: 'At least one field must be provided to update' });
+        }
+     // Save updated Itinerary date
+        await req.trip.save();
+
+        return res.status(200).json({
+            message: 'Itinerary Activity updated successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Edit an existing packing list
+
+app.put('/api/edit-packing-list/:userId/:tripId/:itemId', validateTripOwnership, async(req, res) => 
+{
+    try{
+
+        //Get packing list id
+        const { itemId } = req.params;
+        const { item, packed } = req.body;
+        
+        //Find packing list on the array
+        const PckList = req.trip.packingList.id(itemId);
+
+        if (!PckList) 
+        {
+            return res.status(400).json({ error: 'Packing List does not exist' });
+        }
+
+        //Make sure item and packed are filled
+        if(item === undefined && packed === undefined )
+        {
+            return res.status(400).json({ error: 'Item can not be empty' });
+        }
+        else{
+            if( item !== undefined) PckList.item = item;
+            if( packed !== undefined) PckList.packed = packed;
+        }    
+
+        // Save updated Packing List
+            await req.trip.save();
+
+            return res.status(200).json({
+                message: 'Packing list item updated successfully updated successfully',
+                trip: req.trip,
+                error: ''
+            });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Delete an existing Trip
+
+app.delete('/api/delete-trip/:userId/:tripId', validateTripOwnership, async(req, res) =>
+{
+    try
+    {
+         await req.trip.deleteOne();
+
+         return res.status(200).json({
+             message: 'Trip deleted successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Delete a flight
+app.delete('/api/delete-flight/:userId/:tripId/:flightId', validateTripOwnership, async(req, res) =>
+{
+    try
+    {
+        //Get from params
+        const { flightId } = req.params;
+
+        //Find the flight inside the array
+        const flight = req.trip.flights.id(flightId);
+
+        if (!flight) {
+            return res.status(400).json({ error: 'Flight does not exist' });
+        }
+
+        flight.deleteOne();
+
+        await req.trip.save();
+
+        return res.status(200).json({
+            message: 'Flight deleted successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Delete a hotel
+app.delete('/api/delete-hotel/:userId/:tripId/:hotelId', validateTripOwnership, async(req, res) => 
+{
+    try
+    {
+        //Get from params
+        const { hotelId } = req.params;
+
+        //Find the hotel inside the array
+        const hotel = req.trip.hotels.id(hotelId);
+
+        if (!hotel) 
+        {
+            return res.status(400).json({ error: 'Hotel reservation does not exist' });
+        }
+
+        //Delete from the array
+        hotel.deleteOne();
+
+        await req.trip.save();
+
+        return res.status(200).json({
+            message: 'hotel deleted successfully',
+            trip: req.trip,
+            error: ''
+    });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Delete an itinerary
+app.delete('/api/delete-itinerary/:userId/:tripId/:dayId', validateTripOwnership, async(req, res) =>
+{
+    try
+    {
+        const { dayId } = req.params;
+
+        //Find specific itinerary on the array
+         const itinerary = req.trip.itinerary.id(dayId);
+
+        if (!itinerary) 
+        {
+            return res.status(400).json({ error: 'Itinerary does not exist' });
+        }
+
+        itinerary.deleteOne();
+
+        await req.trip.save();
+
+        return res.status(200).json({
+            message: 'Itinerary deleted successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Delete an Activity
+app.delete('/api/delete-activity/:userId/:tripId/:dayId/:activityId', validateTripOwnership, async(req, res) =>
+{
+    try
+    {
+        const { dayId, activityId } = req.params;
+
+        const day = req.trip.itinerary.id(dayId);
+        //Find the specific itinerary
+        if (!day) 
+        {
+            return res.status(400).json({ error: 'Itinerary does not exist' });
+        }
+
+        //Find the specific activity inside that day
+        const activity = day.activities.id(activityId);
+        if(!activity)
+        {
+            return res.status(400).json({ error: 'Activity does not exist' });
+        }
+
+        activity.deleteOne();
+
+        await req.trip.save();
+
+        return res.status(200).json({
+            message: 'Activity deleted successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+});
+
+//Delete a Packing List
+app.delete('/api/delete-PackingList/:userId/:tripId/:packingListId', validateTripOwnership, async (req, res) =>
+{
+    try
+    {
+        //Get packing list id
+        const { packingListId } = req.params;
+        
+         //Find packing list on the array
+        const PckList = req.trip.packingList.id(packingListId);
+
+        if (!PckList) 
+        {
+            return res.status(400).json({ error: 'Packing List does not exist' });
+        }
+
+        PckList.deleteOne();
+
+        await req.trip.save();        
+
+        return res.status(200).json({
+            message: 'Packing List deleted successfully',
+            trip: req.trip,
+            error: ''
+        });
+
+    }catch(err){
+        console.error(err);
+        return res.status(500).json({error: 'Server error'});
+    }
+    
+});
+
 app.listen(PORT,() => {
   console.log(`Server running on port ${PORT}`);
 }); // start Node + Express server on port 5001
