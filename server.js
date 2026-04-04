@@ -539,6 +539,35 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
+// Search by userId for all trips belonging to that user
+app.get('/api/get-all-trips/:userId', async(req, res) => {
+  try {
+    // Save what the frontend sent
+    const {userId} = req.params;
+
+    // Make sure userId exists
+    const user = await User.findById(userId);
+
+    if(!user) {
+      return res.status(400).json({error: 'userId does not exist'});
+    }
+
+    // Search for trips by userId and save all matches to the trips array
+    const trips = await Trip.find({userId});
+
+    // Return success message, trips array, and number of trips
+    return res.status(200).json({
+      message: 'successfully found all of the trips belonging to that userId',
+      numTrips: trips.length,
+      trips: trips,
+      error: ''
+    });
+  } catch(err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Search for trip by id and send result to frontend
 app.get('/api/get-trip/:tripId', async(req, res) => {
   try {
