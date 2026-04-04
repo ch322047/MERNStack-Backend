@@ -146,6 +146,71 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+//resend verification email
+app.post('/api/resend-verification-email', async (req, res) => {
+  try {
+    const { login, email } = req.body;
+
+    //check input
+    if (!login || !email) {
+      return res.status(400).json({ error: 'Login and email are required' });
+    }
+
+    const trimmedLogin = login.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+      login: trimmedLogin,
+      email: normalizedEmail,
+    });
+
+    //check if user exists
+    if (!user) {
+      return res.status(200).json({
+        message: 'If the account exists and is unverified, a verification email has been sent.',
+        error: '',
+      });
+    }
+
+    //check if verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        error: 'This email is already verified',
+      });
+    }
+
+    const verifyToken = generateToken();
+    const verifyTokenHash = hashToken(verifyToken);
+    const verifyTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    user.verifyTokenHash = verifyTokenHash;
+    user.verifyTokenExpiresAt = verifyTokenExpiresAt;
+    await user.save();
+
+    const verifyUrl = `https://lampstackprojectgroup9.com/api/verify-email?token=${verifyToken}`;
+
+    await sgMail.send({
+      to: user.email,
+      from: process.env.MAIL_FROM,
+      subject: 'Pleas verify your email',
+      html: `
+        <p>Hi ${user.firstName},</p>
+        <p>Please verify your email by clicking this link:</p>
+        <a href="${verifyUrl}">${verifyUrl}</a>
+        <p>This link expires in 24 hours.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      message: 'Verification email sent',
+      error: '',
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.post('/api/addcard', async (req, res, next) =>
 {
   // incoming: userId, color
