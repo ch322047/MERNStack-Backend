@@ -192,7 +192,7 @@ app.post('/api/resend-verification-email', async (req, res) => {
     await sgMail.send({
       to: user.email,
       from: process.env.MAIL_FROM,
-      subject: 'Pleas verify your email',
+      subject: 'Please verify your email',
       html: `
         <p>Hi ${user.firstName},</p>
         <p>Please verify your email by clicking this link:</p>
