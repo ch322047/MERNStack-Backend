@@ -84,6 +84,70 @@ function signJwt(user) {
   );
 }
 
+//session token verification helpers
+function extractBearerToken(req) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  return authHeader.split(' ')[1];
+}
+
+function getUserIdFromToken(token) {
+  try {
+    if (!token) return null;
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    return payload?.sub || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function requireAuth(req, res, next) {
+  try {
+    const token = extractBearerToken(req);
+
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication token is required' });
+    }
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = {
+      id: payload.sub,
+      login: payload.login,
+      email: payload.email,
+    };
+
+    req.token = token;
+
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired session token' });
+  }
+}
+
+//for routes with userID
+function requireMatchingUserIdParam(paramName = 'userId') {
+  return (req, res, next) => {
+    const tokenUserId = req.user?.id;
+    const paramUserId = req.params[paramName];
+
+    if (!paramUserId) {
+      return res.status(400).json({ error: `${paramName} is required` });
+    }
+
+    if (paramUserId !== tokenUserId) {
+      return res.status(403).json({ error: 'You are not authorized for this user resource' });
+    }
+
+    next();
+  };
+}
+
 //register endpoint
 app.post('/api/register', async (req, res) => {
   try {
