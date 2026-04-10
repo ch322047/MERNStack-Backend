@@ -604,10 +604,10 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 // Search by userId for all trips belonging to that user
-app.get('/api/get-all-trips/:userId', async(req, res) => {
+app.get('/api/get-all-trips', requireAuth, async(req, res) => {
   try {
     // Save what the frontend sent
-    const {userId} = req.params;
+    const userId = req.user.id;
 
     // Make sure userId exists
     const user = await User.findById(userId);
@@ -633,7 +633,7 @@ app.get('/api/get-all-trips/:userId', async(req, res) => {
 });
 
 // Search for trip by id and send result to frontend
-app.get('/api/get-trip/:tripId', async(req, res) => {
+app.get('/api/get-trip/:tripId', requireAuth, async(req, res) => {
   try {
     // Save what the frontend sent
     const {tripId} = req.params;
@@ -659,10 +659,10 @@ app.get('/api/get-trip/:tripId', async(req, res) => {
 });
 
 // Create a trip
-app.post('/api/create-trip/:userId', async(req, res) => {
+app.post('/api/create-trip', requireAuth, async(req, res) => {
   try {
     // Save what the frontend sent
-    const {userId} = req.params;
+    const userId = req.user.id;
     const {name, destination, startDate, endDate, status} = req.body;
 
     // Check that all required fields are present
@@ -700,10 +700,11 @@ app.post('/api/create-trip/:userId', async(req, res) => {
 });
 
 // Add a flight
-app.post('/api/add-flight/:userId/:tripId', async(req, res) => {
+app.post('/api/add-flight/:tripId', requireAuth, async(req, res) => {
   try {
     // Save what the frontend sent
-    const {userId, tripId} = req.params;
+    const userId = req.user.id;
+    const tripId = req.params.tripId;
     const {airline, flightNumber, departure, arrival, booked} = req.body;
 
     // Make sure userId exists
@@ -738,10 +739,11 @@ app.post('/api/add-flight/:userId/:tripId', async(req, res) => {
 });
 
 // Add a hotel
-app.post('/api/add-hotel/:userId/:tripId', async(req, res) => {
+app.post('/api/add-hotel/:tripId', requireAuth, async(req, res) => {
   try {
     // Save what the frontend sent
-    const {userId, tripId} = req.params;
+    const userId = req.user.id;
+    const tripId = req.params.tripId;
     const {name, checkIn, checkOut, booked} = req.body;
 
     // Make sure userId exists
@@ -776,10 +778,11 @@ app.post('/api/add-hotel/:userId/:tripId', async(req, res) => {
 });
 
 // Add a day to the itinerary
-app.post('/api/add-itinerary-day/:userId/:tripId', async(req, res) => {
+app.post('/api/add-itinerary-day/:tripId', requireAuth, async(req, res) => {
   try {
     // Save what the frontend sent
-    const {userId, tripId} = req.params;
+    const userId = req.user.id;
+    const tripId = req.params.tripId;
     const {date} = req.body;
 
     // Make sure userId exists
@@ -814,10 +817,12 @@ app.post('/api/add-itinerary-day/:userId/:tripId', async(req, res) => {
 });
 
 // Add an activity to an existing day in the itinerary
-app.post('/api/add-itinerary-day-activity/:userId/:tripId/:dayId', async(req, res) => {
+app.post('/api/add-itinerary-day-activity/:tripId/:dayId', requireAuth, async(req, res) => {
   try {
     // Save what the frontend sent
-    const {userId, tripId, dayId} = req.params;
+    const userId = req.user.id;
+    const tripId = req.params.tripId;
+    const dayId = req.params.dayId;
     const {name, time, location} = req.body;
 
     // Make sure userId exists
@@ -859,10 +864,11 @@ app.post('/api/add-itinerary-day-activity/:userId/:tripId/:dayId', async(req, re
 });
 
 // Add an item to the packing list
-app.post('/api/add-to-packing-list/:userId/:tripId', async(req, res) => {
+app.post('/api/add-to-packing-list/:tripId', requireAuth, async(req, res) => {
   try {
     // Save what the frontend sent
-    const {userId, tripId} = req.params;
+    const userId = req.user.id;
+    const tripId = req.params.tripId;
     const {item, packed} = req.body;
 
     // Make sure userId exists
@@ -900,10 +906,10 @@ app.post('/api/add-to-packing-list/:userId/:tripId', async(req, res) => {
 //middleware/validateTripOwnership
 const validateTripOwnership = async (req, res, next) => {
     try{
-
         console.log("validateTripOwnership HIT");
-       //Get user and trip id from params
-        const {userId, tripId} = req.params;
+       //Get user and trip id from req
+        const tripId = req.params.tripId;
+        const userId = req.user.id;
 
         //Check required params
         if(!userId || !tripId)
@@ -944,7 +950,7 @@ const validateTripOwnership = async (req, res, next) => {
 
 //Edit an existing trip
 
-app.put('/api/edit-trip/:userId/:tripId', validateTripOwnership, async (req, res) => {
+app.put('/api/edit-trip/:tripId', requireAuth, validateTripOwnership, async (req, res) => {
   try {
     const { name, destination, startDate, status } = req.body;
 
@@ -969,7 +975,7 @@ app.put('/api/edit-trip/:userId/:tripId', validateTripOwnership, async (req, res
   }
 });
 //Edit existing flight
-app.put('/api/edit-flight/:userId/:tripId/:flightId', validateTripOwnership, async(req, res) =>
+app.put('/api/edit-flight/:tripId/:flightId', requireAuth, validateTripOwnership, async(req, res) =>
 {   
     try
     {
@@ -1011,7 +1017,7 @@ app.put('/api/edit-flight/:userId/:tripId/:flightId', validateTripOwnership, asy
 
 //Edit existing hotel
 
-app.put('/api/edit-hotel/:userId/:tripId/:hotelId', validateTripOwnership, async(req, res) => 
+app.put('/api/edit-hotel/:tripId/:hotelId', requireAuth, validateTripOwnership, async(req, res) => 
 {
     try
     {
@@ -1050,7 +1056,7 @@ app.put('/api/edit-hotel/:userId/:tripId/:hotelId', validateTripOwnership, async
 
 //Edit existing day on hte itinerary
 
-app.put('/api/edit-itinerary-day/:userId/:tripId/:dayId', validateTripOwnership, async(req, res) => 
+app.put('/api/edit-itinerary-day/:tripId/:dayId', requireAuth, validateTripOwnership, async(req, res) => 
 {
     try{
 
@@ -1092,7 +1098,7 @@ app.put('/api/edit-itinerary-day/:userId/:tripId/:dayId', validateTripOwnership,
 
 //Edit an existing itinerary Activity
 
-app.put('/api/edit-itinerary-day-activity/:userId/:tripId/:dayId/:activityId', validateTripOwnership, async(req, res) => 
+app.put('/api/edit-itinerary-day-activity/:tripId/:dayId/:activityId', requireAuth, validateTripOwnership, async(req, res) => 
 {
     try{
         const { dayId, activityId } = req.params;
@@ -1140,7 +1146,7 @@ app.put('/api/edit-itinerary-day-activity/:userId/:tripId/:dayId/:activityId', v
 
 //Edit an existing packing list
 
-app.put('/api/edit-packing-list/:userId/:tripId/:itemId', validateTripOwnership, async(req, res) => 
+app.put('/api/edit-packing-list/:tripId/:itemId', requireAuth, validateTripOwnership, async(req, res) => 
 {
     try{
 
@@ -1183,7 +1189,7 @@ app.put('/api/edit-packing-list/:userId/:tripId/:itemId', validateTripOwnership,
 
 //Delete an existing Trip
 
-app.delete('/api/delete-trip/:userId/:tripId', validateTripOwnership, async(req, res) =>
+app.delete('/api/delete-trip/:tripId', requireAuth, validateTripOwnership, async(req, res) =>
 {
     try
     {
@@ -1202,7 +1208,7 @@ app.delete('/api/delete-trip/:userId/:tripId', validateTripOwnership, async(req,
 });
 
 //Delete a flight
-app.delete('/api/delete-flight/:userId/:tripId/:flightId', validateTripOwnership, async(req, res) =>
+app.delete('/api/delete-flight/:tripId/:flightId', requireAuth, validateTripOwnership, async(req, res) =>
 {
     try
     {
@@ -1233,7 +1239,7 @@ app.delete('/api/delete-flight/:userId/:tripId/:flightId', validateTripOwnership
 });
 
 //Delete a hotel
-app.delete('/api/delete-hotel/:userId/:tripId/:hotelId', validateTripOwnership, async(req, res) => 
+app.delete('/api/delete-hotel/:tripId/:hotelId', requireAuth, validateTripOwnership, async(req, res) => 
 {
     try
     {
@@ -1266,7 +1272,7 @@ app.delete('/api/delete-hotel/:userId/:tripId/:hotelId', validateTripOwnership, 
 });
 
 //Delete an itinerary
-app.delete('/api/delete-itinerary/:userId/:tripId/:dayId', validateTripOwnership, async(req, res) =>
+app.delete('/api/delete-itinerary/:tripId/:dayId', requireAuth, validateTripOwnership, async(req, res) =>
 {
     try
     {
@@ -1297,7 +1303,7 @@ app.delete('/api/delete-itinerary/:userId/:tripId/:dayId', validateTripOwnership
 });
 
 //Delete an Activity
-app.delete('/api/delete-activity/:userId/:tripId/:dayId/:activityId', validateTripOwnership, async(req, res) =>
+app.delete('/api/delete-activity/:tripId/:dayId/:activityId', requireAuth, validateTripOwnership, async(req, res) =>
 {
     try
     {
@@ -1334,7 +1340,7 @@ app.delete('/api/delete-activity/:userId/:tripId/:dayId/:activityId', validateTr
 });
 
 //Delete a Packing List
-app.delete('/api/delete-PackingList/:userId/:tripId/:packingListId', validateTripOwnership, async (req, res) =>
+app.delete('/api/delete-PackingList/:tripId/:packingListId', requireAuth, validateTripOwnership, async (req, res) =>
 {
     try
     {
