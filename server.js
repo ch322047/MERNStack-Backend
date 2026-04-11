@@ -633,7 +633,7 @@ app.get('/api/get-all-trips', requireAuth, async(req, res) => {
 });
 
 // Search for trip by id and send result to frontend
-app.get('/api/get-trip/:tripId', requireAuth, async(req, res) => {
+app.get('/api/get-trip/:tripId', requireAuth, validateTripOwnership, async(req, res) => {
   try {
     // Save what the frontend sent
     const {tripId} = req.params;
@@ -700,7 +700,7 @@ app.post('/api/create-trip', requireAuth, async(req, res) => {
 });
 
 // Add a flight
-app.post('/api/add-flight/:tripId', requireAuth, async(req, res) => {
+app.post('/api/add-flight/:tripId', requireAuth, validateTripOwnership, async(req, res) => {
   try {
     // Save what the frontend sent
     const userId = req.user.id;
@@ -739,7 +739,7 @@ app.post('/api/add-flight/:tripId', requireAuth, async(req, res) => {
 });
 
 // Add a hotel
-app.post('/api/add-hotel/:tripId', requireAuth, async(req, res) => {
+app.post('/api/add-hotel/:tripId', requireAuth, validateTripOwnership, async(req, res) => {
   try {
     // Save what the frontend sent
     const userId = req.user.id;
@@ -778,7 +778,7 @@ app.post('/api/add-hotel/:tripId', requireAuth, async(req, res) => {
 });
 
 // Add a day to the itinerary
-app.post('/api/add-itinerary-day/:tripId', requireAuth, async(req, res) => {
+app.post('/api/add-itinerary-day/:tripId', requireAuth, validateTripOwnership, async(req, res) => {
   try {
     // Save what the frontend sent
     const userId = req.user.id;
@@ -817,7 +817,7 @@ app.post('/api/add-itinerary-day/:tripId', requireAuth, async(req, res) => {
 });
 
 // Add an activity to an existing day in the itinerary
-app.post('/api/add-itinerary-day-activity/:tripId/:dayId', requireAuth, async(req, res) => {
+app.post('/api/add-itinerary-day-activity/:tripId/:dayId', requireAuth, validateTripOwnership, async(req, res) => {
   try {
     // Save what the frontend sent
     const userId = req.user.id;
@@ -864,7 +864,7 @@ app.post('/api/add-itinerary-day-activity/:tripId/:dayId', requireAuth, async(re
 });
 
 // Add an item to the packing list
-app.post('/api/add-to-packing-list/:tripId', requireAuth, async(req, res) => {
+app.post('/api/add-to-packing-list/:tripId', requireAuth, validateTripOwnership, async(req, res) => {
   try {
     // Save what the frontend sent
     const userId = req.user.id;
@@ -906,8 +906,7 @@ app.post('/api/add-to-packing-list/:tripId', requireAuth, async(req, res) => {
 //middleware/validateTripOwnership
 const validateTripOwnership = async (req, res, next) => {
     try{
-        console.log("validateTripOwnership HIT");
-       //Get user and trip id from req
+        //Get user and trip id from req
         const tripId = req.params.tripId;
         const userId = req.user.id;
 
@@ -934,12 +933,14 @@ const validateTripOwnership = async (req, res, next) => {
         //Make sure tripdId belongs to userId
         if (theTripExists.userId.toString() !== userId) 
         {
-        return res.status(403).json({ error: 'This user does not have this trip' });
+            return res.status(403).json({ error: 'This user does not have this trip' });
         }
 
         //Save for later use
-        req.user = theUserExists;
         req.trip = theTripExists;
+
+        // We're no longer using this because it overwrites what requireAuth does to req.user, and this isn't used anywhere anyway
+        // req.user = theUserExists;
 
         next(); 
     }catch(err){
@@ -979,7 +980,6 @@ app.put('/api/edit-flight/:tripId/:flightId', requireAuth, validateTripOwnership
 {   
     try
     {
-      console.log("EDIT FLIGHT HIT");
         //Get possible update fields from body
         const { flightId } = req.params;
         const{ airline, flightNumber, departure, arrival, booked } = req.body;
