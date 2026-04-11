@@ -603,6 +603,51 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
+//middleware/validateTripOwnership
+const validateTripOwnership = async (req, res, next) => {
+    try{
+        //Get user and trip id from req
+        const tripId = req.params.tripId;
+        const userId = req.user.id;
+
+        //Check required params
+        if(!userId || !tripId)
+        {
+           return res.status(400).json({error: 'userId and tripId are required'}); 
+        }
+
+        //Make sure userId exist
+        const theUserExists = await User.findById(userId);
+        if(!theUserExists)
+        {
+            return res.status(400).json({error: 'userId does not exist'});
+        }
+
+        //Make sure tripId exist
+        const theTripExists = await Trip.findById(tripId);
+        if(!theTripExists)
+        {
+            return res.status(400).json({error: 'Trip does not exist'});
+        }
+
+        //Make sure tripdId belongs to userId
+        if (theTripExists.userId.toString() !== userId) 
+        {
+            return res.status(403).json({ error: 'This user does not have this trip' });
+        }
+
+        //Save for later use
+        req.trip = theTripExists;
+
+        // We're no longer using this because it overwrites what requireAuth does to req.user, and this isn't used anywhere anyway
+        // req.user = theUserExists;
+
+        next(); 
+    }catch(err){
+        return res.status(500).json({ error: 'Server error' });
+    }
+};
+
 // Search by userId for all trips belonging to that user
 app.get('/api/get-all-trips', requireAuth, async(req, res) => {
   try {
@@ -901,53 +946,6 @@ app.post('/api/add-to-packing-list/:tripId', requireAuth, validateTripOwnership,
     return res.status(500).json({error: 'Server error'});
   }
 });
-
-
-//middleware/validateTripOwnership
-const validateTripOwnership = async (req, res, next) => {
-    try{
-        //Get user and trip id from req
-        const tripId = req.params.tripId;
-        const userId = req.user.id;
-
-        //Check required params
-        if(!userId || !tripId)
-        {
-           return res.status(400).json({error: 'userId and tripId are required'}); 
-        }
-
-        //Make sure userId exist
-        const theUserExists = await User.findById(userId);
-        if(!theUserExists)
-        {
-            return res.status(400).json({error: 'userId does not exist'});
-        }
-
-        //Make sure tripId exist
-        const theTripExists = await Trip.findById(tripId);
-        if(!theTripExists)
-        {
-            return res.status(400).json({error: 'Trip does not exist'});
-        }
-
-        //Make sure tripdId belongs to userId
-        if (theTripExists.userId.toString() !== userId) 
-        {
-            return res.status(403).json({ error: 'This user does not have this trip' });
-        }
-
-        //Save for later use
-        req.trip = theTripExists;
-
-        // We're no longer using this because it overwrites what requireAuth does to req.user, and this isn't used anywhere anyway
-        // req.user = theUserExists;
-
-        next(); 
-    }catch(err){
-        return res.status(500).json({ error: 'Server error' });
-    }
-
-};
 
 //Edit an existing trip
 
