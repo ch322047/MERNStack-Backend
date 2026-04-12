@@ -184,7 +184,7 @@ app.post('/api/register', async (req, res) => {
       verifyTokenExpiresAt,
     });
 
-    const verifyUrl = `https://lampstackprojectgroup9.com/api/verify-email?token=${verifyToken}`;
+    const verifyUrl = `${process.env.CLIENT_URL}/verify-email?token=${verifyToken}`;
 
     await sgMail.send({
       to: user.email,
@@ -251,7 +251,7 @@ app.post('/api/resend-verification-email', async (req, res) => {
     user.verifyTokenExpiresAt = verifyTokenExpiresAt;
     await user.save();
 
-    const verifyUrl = `https://lampstackprojectgroup9.com/api/verify-email?token=${verifyToken}`;
+    const verifyUrl = `${process.env.CLIENT_URL}/verify-email?token=${verifyToken}`;
 
     await sgMail.send({
       to: user.email,
@@ -543,7 +543,7 @@ app.post('/api/forgot-password', async (req, res) => {
     user.resetTokenExpiresAt = resetTokenExpiresAt;
     await user.save();
 
-    const resetUrl = `https://lampstackprojectgroup9.com/api/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
 
     await sgMail.send({
       to: user.email,
