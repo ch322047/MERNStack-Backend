@@ -245,7 +245,7 @@ describe('Auth endpoints', () => {
       });
 
       expect(res.statusCode).toBe(400);
-      expect(res.body.error).toMatch(/invalid or expired code/i);
+      expect(res.body.error).toMatch(/code is invalid or expired/i);
     });
 
     test('returns 400 when there is no active login code', async () => {

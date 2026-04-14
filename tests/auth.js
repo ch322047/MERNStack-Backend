@@ -432,7 +432,7 @@ describe('Auth endpoints', () => {
       });
 
       expect(res.statusCode).toBe(400);
-      expect(res.body.error).toMatch(/token and new password are required/i);
+      expect(res.body.error).toMatch(/code is invalid or expired/i);
     });
 
     test('returns 400 for invalid or expired token', async () => {
