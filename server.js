@@ -1370,6 +1370,14 @@ app.delete('/api/delete-PackingList/:tripId/:packingListId', requireAuth, valida
     
 });
 
-app.listen(PORT,() => {
-  console.log(`Server running on port ${PORT}`);
-}); // start Node + Express server on port 5001
+const PORT = process.env.PORT || 5001;
+
+// only start server if run directly (not during tests)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+// export app for testing
+module.exports = app;
