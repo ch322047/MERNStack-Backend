@@ -1370,7 +1370,7 @@ app.delete('/api/delete-PackingList/:tripId/:packingListId', requireAuth, valida
     
 });
 
-const PORT = process.env.PORT || 5001;
+
 
 // only start server if run directly (not during tests)
 if (require.main === module) {
