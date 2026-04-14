@@ -30,6 +30,10 @@ const jwt = require('jsonwebtoken');
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SMTP_PASS);
 
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB connection error:", err));
+
 //mail transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -44,15 +48,10 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 10000,
 });
 
-if (process.env.NODE_ENV !== 'test') {
-  mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log("MongoDB connected"))
-    .catch(err => console.error("MongoDB connection error:", err));
-
-  transporter.verify()
-    .then(() => console.log('SMTP ready'))
-    .catch(err => console.error('SMTP error:', err));
-}
+//testing
+transporter.verify()
+  .then(() => console.log('SMTP ready'))
+  .catch(err => console.error('SMTP error:', err));
 
 const app = express();
 app.use(cors());
@@ -1371,14 +1370,6 @@ app.delete('/api/delete-PackingList/:tripId/:packingListId', requireAuth, valida
     
 });
 
-
-
-// only start server if run directly (not during tests)
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
-
-// export app for testing
-module.exports = app;
+app.listen(PORT,() => {
+  console.log(`Server running on port ${PORT}`);
+}); // start Node + Express server on port 5001
