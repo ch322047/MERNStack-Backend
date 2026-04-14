@@ -1,3 +1,6 @@
+process.env.NODE_ENV = 'test';
+jest.setTimeout(30000);
+
 const request = require('supertest');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
@@ -9,6 +12,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
 process.env.MAIL_FROM = process.env.MAIL_FROM || 'test@example.com';
 process.env.SMTP_PASS = process.env.SMTP_PASS || 'fake-sendgrid-key';
 
+// mock sendgrid BEFORE importing server
 jest.mock('@sendgrid/mail', () => ({
   setApiKey: jest.fn(),
   send: jest.fn().mockResolvedValue([{ statusCode: 202 }]),
@@ -17,7 +21,6 @@ jest.mock('@sendgrid/mail', () => ({
 const sgMail = require('@sendgrid/mail');
 const app = require('../server');
 const User = require('../models/User');
-
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
@@ -74,7 +77,9 @@ describe('Auth endpoints', () => {
 
   afterAll(async () => {
     await mongoose.disconnect();
-    await mongoServer.stop();
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
   });
 
   describe('POST /api/register', () => {
